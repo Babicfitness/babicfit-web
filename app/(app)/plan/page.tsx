@@ -67,7 +67,8 @@ export default function PlanPage() {
   const preview = addFood && previewG > 0 ? calcEntryMacros(addFood, previewG) : null
 
   function openAddFood(food: FoodItem) {
-    setAddFood(food); setGrams('100'); setShowSearch(false); setQuery(''); setResults([])
+    const defaultG = food.serving_g ? String(food.serving_g) : '100'
+    setAddFood(food); setGrams(defaultG); setShowSearch(false); setQuery(''); setResults([])
   }
 
   function confirmAdd(slot: MealSlot) {
@@ -290,7 +291,7 @@ export default function PlanPage() {
               <p className="text-[#1A2540] font-black text-xl mb-0.5">Dodaj u obrok</p>
               <p className="text-[#3B82F6] font-bold text-sm mb-5">{addFood.name_sr}</p>
 
-              <p className="text-[#8A9BBF] text-xs font-bold uppercase tracking-widest mb-2">Gramatura</p>
+              <p className="text-[#8A9BBF] text-xs font-bold uppercase tracking-widest mb-2">Količina</p>
               <div className="flex items-center gap-3 mb-3">
                 <input autoFocus type="number" value={grams} onChange={e => setGrams(e.target.value)} min="1"
                   className="flex-1 rounded-2xl px-4 py-4 text-[#1A2540] text-2xl font-black text-center outline-none border-2 border-[#E4EAF4] focus:border-[#4169E1] bg-[#F8FAFF]"
@@ -298,6 +299,29 @@ export default function PlanPage() {
                 <span className="text-[#8A9BBF] text-xl font-semibold">g</span>
               </div>
 
+              {/* Merice (ako namirnica ima serving_g) */}
+              {addFood.serving_g && (
+                <div className="mb-3">
+                  <p className="text-[#8A9BBF] text-xs font-semibold mb-2">Merice ({addFood.serving_g}g / {addFood.serving_label})</p>
+                  <div className="flex gap-2">
+                    {[1, 2, 3].map(n => {
+                      const g = String(n * addFood.serving_g!)
+                      return (
+                        <button key={n} onClick={() => setGrams(g)}
+                          className="flex-1 py-2.5 rounded-xl text-xs font-bold border-2 transition-all"
+                          style={grams === g
+                            ? { background: '#4169E1', borderColor: '#4169E1', color: '#fff' }
+                            : { background: '#EFF6FF', borderColor: '#BFDBFE', color: '#3B82F6' }}>
+                          {n} {addFood.serving_label}<br />
+                          <span className="font-normal opacity-75">{g}g</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Brze gramature */}
               <div className="flex gap-2 mb-4">
                 {[50, 100, 150, 200, 250].map(a => (
                   <button key={a} onClick={() => setGrams(String(a))}

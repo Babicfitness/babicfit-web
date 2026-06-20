@@ -9,6 +9,8 @@ export type FoodItem = {
   protein_g: number
   carbs_g: number
   fat_g: number
+  serving_g?: number       // gram weight of one serving (e.g. 30 for whey scoop)
+  serving_label?: string   // label for one serving (e.g. 'merica')
 }
 
 export const CATEGORIES = [
@@ -69,7 +71,7 @@ export const SYSTEM_FOODS: FoodItem[] = [
   { id:'sf-protein-puding', type:'system', category_id:'cat-mlecni',  icon:'🍮', name_sr:'Proteinski puding',              search_name:'proteinski puding',                      calories_kcal:75,  protein_g:9,   carbs_g:7,   fat_g:1.5 },
 
   // ── SUPLEMENTI ───────────────────────────────────────────────────────────────
-  { id:'sf-whey',           type:'system', category_id:'cat-supp',    icon:'💪', name_sr:'Whey protein prah',              search_name:'whey protein prah',                      calories_kcal:400, protein_g:83,  carbs_g:10,  fat_g:5   },
+  { id:'sf-whey',           type:'system', category_id:'cat-supp',    icon:'💪', name_sr:'Whey protein prah',              search_name:'whey protein prah',                      calories_kcal:400, protein_g:83,  carbs_g:10,  fat_g:5,   serving_g:30, serving_label:'merica' },
 
   // ── ŽITARICE ─────────────────────────────────────────────────────────────────
   { id:'sf-pirinac-beli',   type:'system', category_id:'cat-zitarice', icon:'🍚', name_sr:'Beli pirinač (sirovi)',          search_name:'beli pirinac sirov',                     calories_kcal:365, protein_g:7,   carbs_g:80,  fat_g:0.7 },
