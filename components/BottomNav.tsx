@@ -9,6 +9,7 @@ const NAV = [
   { href: '/foods',    label: 'Lične namirnice',  icon: '🥗' },
   { href: '/recipes',  label: 'Moji recepti',     icon: '📖' },
   { href: '/history',  label: 'Istorija',         icon: '📅' },
+  { href: '/profile',  label: 'Profil',           icon: '👤' },
 ]
 
 export default function TopNav() {
@@ -21,7 +22,7 @@ export default function TopNav() {
           return (
             <Link key={item.href} href={item.href}
               className={`flex items-center gap-1.5 px-4 py-3.5 text-xs font-bold whitespace-nowrap flex-shrink-0 border-b-2 transition-all ${
-                active ? 'border-[#4169E1] text-[#4169E1]' : 'border-transparent text-[#8A9BBF] hover:text-[#4A5A7A]'
+                active ? 'border-[#4169E1] text-[#4169E1]' : 'border-transparent text-[#4A5A7A] hover:text-[#1A2540]'
               }`}>
               <span className="text-sm">{item.icon}</span>
               <span>{item.label}</span>
