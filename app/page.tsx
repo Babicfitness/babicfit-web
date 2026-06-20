@@ -1,17 +1,15 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+'use client'
 
-export default async function RootPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { getProfile } from '@/lib/localStore'
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('onboarding_done')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile?.onboarding_done) redirect('/onboarding')
-  redirect('/plan')
+export default function RootPage() {
+  const router = useRouter()
+  useEffect(() => {
+    const profile = getProfile()
+    if (!profile?.onboarding_done) router.replace('/onboarding')
+    else router.replace('/plan')
+  }, [])
+  return null
 }
