@@ -98,7 +98,7 @@ export default function DatabasePage() {
         <div className="space-y-2">
           {filtered.map(food => (
             <div key={food.id} className="bg-white rounded-2xl px-4 py-3.5 flex items-center gap-3 border border-[#E4EAF4] shadow-sm">
-              <span className="text-xl shrink-0">{CATEGORIES.find(c => c.id === food.category_id)?.icon ?? '🍽️'}</span>
+              <span className="text-xl shrink-0">{food.icon}</span>
               <div className="flex-1 min-w-0">
                 <p className="text-[#1A2540] text-sm font-semibold truncate mb-1">{food.name_sr}</p>
                 <div className="flex items-center gap-3 flex-wrap">

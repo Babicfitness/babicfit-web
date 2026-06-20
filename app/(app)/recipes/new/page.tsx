@@ -22,7 +22,7 @@ export default function NewRecipePage() {
     if (!q.trim()) { setResults([]); return }
     const userFoods = getUserFoods().map(f => ({
       id: f.id, type: 'user' as const, name_sr: f.name, search_name: f.name.toLowerCase(),
-      category_id: f.category_id, calories_kcal: f.calories_kcal,
+      category_id: f.category_id, icon: '🍽️', calories_kcal: f.calories_kcal,
       protein_g: f.protein_g, carbs_g: f.carbs_g, fat_g: f.fat_g,
     }))
     setResults(searchFoods(q, userFoods))
