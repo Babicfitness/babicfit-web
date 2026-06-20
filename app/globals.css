@@ -1,28 +1,29 @@
 @import "tailwindcss";
 
 @theme {
-  /* ── BabicFIT Design System ── */
-  --color-bg:          #0B1220;
-  --color-surface:     #131F35;
-  --color-surface-alt: #1A2844;
-  --color-line:        #1E3052;
+  /* ── BabicFIT Design System — Light theme ── */
+  --color-bg:          #F0F4FA;
+  --color-surface:     #FFFFFF;
+  --color-surface-alt: #F8FAFF;
+  --color-line:        #E4EAF4;
   --color-primary:     #4169E1;
-  --color-primary-h:   #5577ee;
-  --color-muted:       #8EA3BA;
-  --color-secondary:   #D9E2EC;
+  --color-primary-h:   #2F56D0;
+  --color-muted:       #8A9BBF;
+  --color-secondary:   #4A5A7A;
   --color-success:     #22C55E;
   --color-danger:      #EF4444;
-  --color-protein:     #4ADE80;
-  --color-carbs:       #FACC15;
-  --color-fat:         #FB923C;
+  /* Macro colors — Everfit palette */
+  --color-protein:     #3B82F6;
+  --color-carbs:       #22C55E;
+  --color-fat:         #F59E0B;
 }
 
 * { box-sizing: border-box; }
 
 html, body {
   height: 100%;
-  background-color: #0B1220;
-  color: #ffffff;
+  background-color: #F0F4FA;
+  color: #1A2540;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
 }

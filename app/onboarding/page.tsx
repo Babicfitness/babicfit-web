@@ -19,7 +19,7 @@ const STEPS = [
   { field: 'last_name',  label: 'Koje je tvoje prezime?', sub: 'Koristimo ga da personalizujemo tvoj plan.', type: 'text', placeholder: 'Tvoje prezime' },
   { field: 'gender',     label: 'Koji je tvoj pol?', sub: 'Odaberi onaj koji odgovara tvojoj biologiji.', type: 'choice',
     options: [{ value: 'female', label: 'Žena', icon: '👩' }, { value: 'male', label: 'Muškarac', icon: '👨' }] },
-  { field: 'age',        label: 'Koliko imaš godina?', sub: 'Što si stariji/a, telu treba nešto drugačija ishrana — zato nam to kažeš.', type: 'number', unit: 'godina', min: 10, max: 100, placeholder: '25' },
+  { field: 'age',        label: 'Koliko imaš godina?', sub: 'Tvoje godine utiču na metabolizam i dnevne kalorijske potrebe. Što je broj tačniji, plan je precizniji.', type: 'number', unit: 'god.', min: 10, max: 100, placeholder: '25' },
   { field: 'height_cm',  label: 'Koja je tvoja visina?', sub: 'Unesi svoju visinu u centimetrima — npr. ako si 178cm, ukucaj 178.', type: 'number', unit: 'cm', min: 100, max: 250, placeholder: '170' },
   { field: 'weight_kg',  label: 'Koja je tvoja trenutna težina?', sub: 'Unesi koliko si kilogram u ovom trenutku — npr. 82.', type: 'number', unit: 'kg', min: 30, max: 300, placeholder: '70' },
   { field: 'activity_level', label: 'Koliko si aktivan/na?', sub: 'Budi iskren/a — na osnovu ovoga ćemo izračunati koliko kalorija ti treba svaki dan.', type: 'choice',

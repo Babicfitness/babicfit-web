@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { getProfile, getEntries, addEntry, removeEntry } from '@/lib/localStore'
 import { calcEntryMacros } from '@/lib/calculations'
@@ -9,87 +9,32 @@ import type { MealEntry, MealSlot, Profile } from '@/lib/localStore'
 import type { FoodItem } from '@/lib/foodData'
 
 const MEALS: { id: MealSlot; label: string; icon: string }[] = [
-  { id: 'breakfast', label: 'Doručak',  icon: '🌅' },
-  { id: 'lunch',     label: 'Ručak',    icon: '☀️' },
-  { id: 'dinner',    label: 'Večera',   icon: '🌙' },
-  { id: 'snack1',    label: 'Užina',    icon: '🍎' },
+  { id: 'breakfast', label: 'Doručak', icon: '🌅' },
+  { id: 'lunch',     label: 'Ručak',   icon: '☀️' },
+  { id: 'dinner',    label: 'Večera',  icon: '🌙' },
+  { id: 'snack1',    label: 'Užina',   icon: '🍎' },
 ]
 
-const QUICK = [50, 100, 150, 200, 250]
+const MEAL_COLORS: Record<MealSlot, { bg: string; border: string; iconBg: string }> = {
+  breakfast: { bg: '#FFF7ED', border: '#FED7AA', iconBg: '#FB923C' },
+  lunch:     { bg: '#F0FDF4', border: '#BBF7D0', iconBg: '#22C55E' },
+  dinner:    { bg: '#F5F3FF', border: '#DDD6FE', iconBg: '#8B5CF6' },
+  snack1:    { bg: '#EFF6FF', border: '#BFDBFE', iconBg: '#3B82F6' },
+}
+
 const today = new Date().toISOString().split('T')[0]
-
-// SVG calorie ring
-function CalRing({ eaten, goal }: { eaten: number; goal: number }) {
-  const R = 80
-  const C = 2 * Math.PI * R
-  const pct = goal > 0 ? Math.min(eaten / goal, 1) : 0
-  const over = goal > 0 && eaten > goal
-  const dash = pct * C
-  const remaining = Math.max(0, Math.round(goal - eaten))
-
-  return (
-    <svg width="200" height="200" viewBox="0 0 200 200" className="mx-auto">
-      {/* Track */}
-      <circle cx="100" cy="100" r={R} fill="none" stroke="#1E3052" strokeWidth="14" />
-      {/* Progress */}
-      <circle
-        cx="100" cy="100" r={R} fill="none"
-        stroke={over ? '#EF4444' : '#4169E1'}
-        strokeWidth="14"
-        strokeLinecap="round"
-        strokeDasharray={`${dash} ${C}`}
-        strokeDashoffset={C / 4}
-        transform="rotate(-90 100 100)"
-        style={{ transition: 'stroke-dasharray 0.6s ease' }}
-      />
-      {/* Center text */}
-      <text x="100" y="88" textAnchor="middle" fill="#FFFFFF" fontSize="36" fontWeight="800" fontFamily="system-ui">{remaining}</text>
-      <text x="100" y="108" textAnchor="middle" fill="#8EA3BA" fontSize="13" fontFamily="system-ui">kcal preostalo</text>
-      <text x="100" y="126" textAnchor="middle" fill="#4169E1" fontSize="12" fontFamily="system-ui">{Math.round(eaten)} / {Math.round(goal)}</text>
-    </svg>
-  )
-}
-
-function MacroCircle({ label, eaten, goal, color }: { label: string; eaten: number; goal: number; color: string }) {
-  const R = 22
-  const C = 2 * Math.PI * R
-  const pct = goal > 0 ? Math.min(eaten / goal, 1) : 0
-  const over = eaten > goal
-
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <svg width="60" height="60" viewBox="0 0 60 60">
-        <circle cx="30" cy="30" r={R} fill="none" stroke="#1E3052" strokeWidth="5" />
-        <circle cx="30" cy="30" r={R} fill="none" stroke={over ? '#EF4444' : color}
-          strokeWidth="5" strokeLinecap="round"
-          strokeDasharray={`${pct * C} ${C}`}
-          strokeDashoffset={C / 4}
-          transform="rotate(-90 30 30)"
-          style={{ transition: 'stroke-dasharray 0.5s ease' }}
-        />
-        <text x="30" y="35" textAnchor="middle" fill="#FFFFFF" fontSize="11" fontWeight="700" fontFamily="system-ui">
-          {Math.round(eaten)}
-        </text>
-      </svg>
-      <p className="text-muted text-xs text-center leading-tight">
-        {label}<br />
-        <span className="text-secondary">/ {Math.round(goal)}g</span>
-      </p>
-    </div>
-  )
-}
 
 export default function PlanPage() {
   const router = useRouter()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [entries, setEntries] = useState<MealEntry[]>([])
-  const [pickerSlot, setPickerSlot] = useState<MealSlot | null>(null)
+  const [activeSlot, setActiveSlot] = useState<MealSlot>('breakfast')
+  const [showSearch, setShowSearch] = useState(false)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<FoodItem[]>([])
-  const [selected, setSelected] = useState<FoodItem | null>(null)
-  const [qty, setQty] = useState(100)
-  const [customQty, setCustomQty] = useState('')
-  const [openMeal, setOpenMeal] = useState<MealSlot | null>('breakfast')
+  const searchRef = useRef<HTMLInputElement>(null)
+  const [addFood, setAddFood] = useState<FoodItem | null>(null)
+  const [grams, setGrams] = useState('100')
 
   useEffect(() => {
     const p = getProfile()
@@ -103,28 +48,35 @@ export default function PlanPage() {
     setResults(searchFoods(query))
   }, [query])
 
+  useEffect(() => {
+    if (showSearch) setTimeout(() => searchRef.current?.focus(), 80)
+  }, [showSearch])
+
   const totals = entries.reduce(
-    (a, e) => ({ calories: a.calories + e.calories, protein_g: a.protein_g + e.protein_g, carbs_g: a.carbs_g + e.carbs_g, fat_g: a.fat_g + e.fat_g }),
-    { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 }
+    (a, e) => ({ cal: a.cal + e.calories, p: a.p + e.protein_g, uh: a.uh + e.carbs_g, m: a.m + e.fat_g }),
+    { cal: 0, p: 0, uh: 0, m: 0 }
   )
 
   const goals = profile
-    ? { calories: profile.goal_calories, protein_g: profile.goal_protein_g, carbs_g: profile.goal_carbs_g, fat_g: profile.goal_fat_g }
-    : { calories: 2000, protein_g: 150, carbs_g: 200, fat_g: 60 }
+    ? { cal: profile.goal_calories, p: profile.goal_protein_g, uh: profile.goal_carbs_g, m: profile.goal_fat_g }
+    : { cal: 2000, p: 150, uh: 200, m: 60 }
 
-  const activeQty = customQty ? +customQty : qty
-  const preview = selected ? calcEntryMacros(selected, activeQty) : null
+  const remaining = Math.max(0, Math.round(goals.cal - totals.cal))
+  const slotEntries = entries.filter(e => e.meal_slot === activeSlot)
+  const previewG = parseInt(grams) || 0
+  const preview = addFood && previewG > 0 ? calcEntryMacros(addFood, previewG) : null
 
-  function openPicker(slot: MealSlot) {
-    setPickerSlot(slot); setSelected(null); setQuery(''); setResults([]); setQty(100); setCustomQty('')
+  function openAddFood(food: FoodItem) {
+    setAddFood(food); setGrams('100'); setShowSearch(false); setQuery(''); setResults([])
   }
 
-  function handleAdd() {
-    if (!selected || !pickerSlot || activeQty <= 0) return
-    const macros = calcEntryMacros(selected, activeQty)
-    const entry = addEntry({ date: today, meal_slot: pickerSlot, food_id: selected.id, food_name: selected.name_sr, quantity_g: activeQty, ...macros })
+  function confirmAdd(slot: MealSlot) {
+    if (!addFood || previewG <= 0) return
+    const macros = calcEntryMacros(addFood, previewG)
+    const entry = addEntry({ date: today, meal_slot: slot, food_id: addFood.id, food_name: addFood.name_sr, quantity_g: previewG, ...macros })
     setEntries(p => [...p, entry])
-    setPickerSlot(null)
+    setActiveSlot(slot)
+    setAddFood(null)
   }
 
   function handleRemove(id: string) {
@@ -133,174 +85,275 @@ export default function PlanPage() {
 
   const dateLabel = new Date().toLocaleDateString('sr-Latn-RS', { weekday: 'long', day: 'numeric', month: 'long' })
 
-  if (!profile) return <div className="min-h-screen bg-bg" />
+  if (!profile) return <div className="min-h-screen bg-[#F0F4FA]" />
+
+  const calPct = Math.min((totals.cal / goals.cal) * 100, 100)
+  const pPct   = Math.min((totals.p  / goals.p)   * 100, 100)
+  const uhPct  = Math.min((totals.uh / goals.uh)  * 100, 100)
+  const mPct   = Math.min((totals.m  / goals.m)   * 100, 100)
 
   return (
-    <div className="px-4 py-5 space-y-4 max-w-lg mx-auto">
+    <div className="max-w-2xl mx-auto px-4 pt-5 pb-16 space-y-4">
+      <p className="text-[#8A9BBF] text-sm font-medium capitalize">{dateLabel}</p>
 
-      {/* Date */}
-      <p className="text-muted text-sm capitalize">{dateLabel}</p>
+      {/* ── Daily overview card ───────────────────────────────── */}
+      <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#E4EAF4]">
+        {/* Calorie row */}
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <p className="text-[#8A9BBF] text-xs font-semibold uppercase tracking-widest mb-1">Kalorije danas</p>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-[#1A2540] text-4xl font-black">{Math.round(totals.cal)}</span>
+              <span className="text-[#8A9BBF] text-base">/ {Math.round(goals.cal)} kcal</span>
+            </div>
+          </div>
+          <div className="text-right bg-[#F0F4FA] rounded-xl px-4 py-2.5">
+            <p className="text-[#8A9BBF] text-xs mb-0.5">Preostalo</p>
+            <p className={`text-2xl font-black ${totals.cal > goals.cal ? 'text-red-500' : 'text-[#4169E1]'}`}>
+              {remaining}
+            </p>
+            <p className="text-[#8A9BBF] text-xs">kcal</p>
+          </div>
+        </div>
 
-      {/* Calorie ring card */}
-      <div className="bg-surface rounded-2xl pt-5 pb-6 px-4">
-        <CalRing eaten={totals.calories} goal={goals.calories} />
+        {/* Calorie bar */}
+        <div className="h-3 rounded-full bg-[#E4EAF4] mb-5 overflow-hidden">
+          <div className="h-full rounded-full transition-all duration-700"
+            style={{ width: `${calPct}%`, background: totals.cal > goals.cal ? '#EF4444' : 'linear-gradient(90deg, #4169E1, #6389FF)' }} />
+        </div>
 
-        {/* Macro rings */}
-        <div className="flex justify-around mt-4">
-          <MacroCircle label="Proteini" eaten={totals.protein_g} goal={goals.protein_g} color="#4ADE80" />
-          <MacroCircle label="Ugljeni h." eaten={totals.carbs_g} goal={goals.carbs_g} color="#FACC15" />
-          <MacroCircle label="Masti" eaten={totals.fat_g} goal={goals.fat_g} color="#FB923C" />
+        {/* Proteini — hero */}
+        <div className="rounded-xl p-4 mb-3 border border-blue-100" style={{ background: '#EFF6FF' }}>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-[#3B82F6]" />
+              <span className="text-[#1A2540] font-bold text-sm">Proteini</span>
+              <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-blue-100 text-blue-600">#1</span>
+            </div>
+            <span className="text-[#8A9BBF] text-xs font-medium">cilj: {Math.round(goals.p)}g</span>
+          </div>
+          <div className="flex items-baseline gap-2 mb-2">
+            <span className="text-[#3B82F6] text-3xl font-black">{Math.round(totals.p)}</span>
+            <span className="text-[#8A9BBF] text-sm">g uneseno</span>
+          </div>
+          <div className="h-2.5 rounded-full bg-blue-100 overflow-hidden">
+            <div className="h-full rounded-full transition-all duration-500 bg-[#3B82F6]"
+              style={{ width: `${pPct}%`, backgroundColor: totals.p > goals.p ? '#EF4444' : '#3B82F6' }} />
+          </div>
+        </div>
+
+        {/* UH + Masti */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-xl p-3 border border-green-100" style={{ background: '#F0FDF4' }}>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+              <span className="text-[#1A2540] text-xs font-bold">Ugljeni hidrati</span>
+            </div>
+            <p className="text-green-600 text-2xl font-black mb-1">
+              {Math.round(totals.uh)}<span className="text-sm text-[#8A9BBF] font-medium"> / {Math.round(goals.uh)}g</span>
+            </p>
+            <div className="h-2 rounded-full bg-green-100 overflow-hidden">
+              <div className="h-full rounded-full transition-all bg-green-500"
+                style={{ width: `${uhPct}%`, backgroundColor: totals.uh > goals.uh ? '#EF4444' : '#22C55E' }} />
+            </div>
+          </div>
+          <div className="rounded-xl p-3 border border-amber-100" style={{ background: '#FFFBEB' }}>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+              <span className="text-[#1A2540] text-xs font-bold">Masti</span>
+            </div>
+            <p className="text-amber-600 text-2xl font-black mb-1">
+              {Math.round(totals.m)}<span className="text-sm text-[#8A9BBF] font-medium"> / {Math.round(goals.m)}g</span>
+            </p>
+            <div className="h-2 rounded-full bg-amber-100 overflow-hidden">
+              <div className="h-full rounded-full transition-all"
+                style={{ width: `${mPct}%`, backgroundColor: totals.m > goals.m ? '#EF4444' : '#F59E0B' }} />
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Meals */}
-      {MEALS.map(meal => {
-        const slotEntries = entries.filter(e => e.meal_slot === meal.id)
-        const slotCal = Math.round(slotEntries.reduce((s, e) => s + e.calories, 0))
-        const isOpen = openMeal === meal.id
-
-        return (
-          <div key={meal.id} className="bg-surface rounded-2xl overflow-hidden">
-            {/* Header */}
-            <button
-              className="w-full flex items-center justify-between px-4 py-4 text-left"
-              onClick={() => setOpenMeal(isOpen ? null : meal.id)}
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-xl">{meal.icon}</span>
-                <div>
-                  <p className="text-white font-semibold">{meal.label}</p>
-                  <p className="text-muted text-xs">
-                    {slotCal > 0 ? `${slotCal} kcal · ${slotEntries.length} namirnic${slotEntries.length === 1 ? 'a' : 'e'}` : 'Nije uneto'}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {slotCal > 0 && (
-                  <span className="text-primary text-sm font-bold">{slotCal}</span>
-                )}
-                <span className="text-muted text-lg">{isOpen ? '▾' : '▸'}</span>
-              </div>
+      {/* ── Meal tabs ─────────────────────────────────────────── */}
+      <div className="grid grid-cols-4 gap-2">
+        {MEALS.map(meal => {
+          const mealCal = Math.round(entries.filter(e => e.meal_slot === meal.id).reduce((s, e) => s + e.calories, 0))
+          const active = activeSlot === meal.id
+          const mc = MEAL_COLORS[meal.id]
+          return (
+            <button key={meal.id} onClick={() => setActiveSlot(meal.id)}
+              className="rounded-xl py-3 px-2 text-center transition-all border-2"
+              style={active
+                ? { background: mc.bg, borderColor: mc.iconBg + '80' }
+                : { background: '#fff', borderColor: '#E4EAF4' }}>
+              <p className="text-xl mb-0.5">{meal.icon}</p>
+              <p className="text-xs font-bold text-[#1A2540]">{meal.label}</p>
+              <p className="text-[#8A9BBF] text-xs mt-0.5">{mealCal > 0 ? `${mealCal} kcal` : '—'}</p>
             </button>
+          )
+        })}
+      </div>
 
-            {isOpen && (
-              <div className="border-t border-line">
-                {slotEntries.map(e => (
-                  <div key={e.id} className="flex items-center px-4 py-3 border-b border-line last:border-0 gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm font-medium truncate">{e.food_name}</p>
-                      <p className="text-muted text-xs mt-0.5">
-                        {e.quantity_g}g ·{' '}
-                        <span className="text-primary">{Math.round(e.calories)} kcal</span>
-                        {' '}· P{Math.round(e.protein_g)} UH{Math.round(e.carbs_g)} M{Math.round(e.fat_g)}
-                      </p>
-                    </div>
-                    <button onClick={() => handleRemove(e.id)} className="text-muted hover:text-danger text-xl transition-colors shrink-0">×</button>
-                  </div>
-                ))}
-
-                <div className="px-4 py-3">
-                  <button
-                    onClick={() => openPicker(meal.id)}
-                    className="w-full py-2.5 border-2 border-dashed border-line hover:border-primary/50 text-muted hover:text-primary rounded-xl text-sm font-medium transition-all"
-                  >
-                    + Dodaj namirnicu
-                  </button>
-                </div>
-              </div>
+      {/* ── Active meal card ──────────────────────────────────── */}
+      <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#E4EAF4]">
+        <div className="px-4 py-3.5 border-b border-[#F0F4FA] flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">{MEALS.find(m => m.id === activeSlot)?.icon}</span>
+            <span className="text-[#1A2540] font-bold">{MEALS.find(m => m.id === activeSlot)?.label}</span>
+            {slotEntries.length > 0 && (
+              <span className="text-[#8A9BBF] text-xs">· {Math.round(slotEntries.reduce((s, e) => s + e.calories, 0))} kcal</span>
             )}
           </div>
-        )
-      })}
+          <button onClick={() => setShowSearch(true)}
+            className="text-xs font-bold px-3 py-1.5 rounded-lg text-white"
+            style={{ background: '#4169E1' }}>
+            + Dodaj
+          </button>
+        </div>
 
-      {/* Food picker */}
-      {pickerSlot && (
-        <div className="fixed inset-0 z-50 bg-bg/70 backdrop-blur-sm flex items-end" onClick={() => setPickerSlot(null)}>
-          <div className="w-full bg-surface rounded-t-2xl max-h-[88vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1 bg-line rounded-full" /></div>
-
-            {selected ? (
-              <div className="px-5 pb-8 flex flex-col gap-4 overflow-y-auto">
-                <div className="flex items-center gap-3 py-2">
-                  <button onClick={() => setSelected(null)} className="text-muted text-2xl">‹</button>
-                  <div>
-                    <p className="text-white font-bold">{selected.name_sr}</p>
-                    <p className="text-muted text-xs">Na 100g: {selected.calories_kcal} kcal · P{selected.protein_g} UH{selected.carbs_g} M{selected.fat_g}</p>
-                  </div>
+        {slotEntries.length === 0 ? (
+          <div className="px-4 py-8 text-center">
+            <p className="text-3xl mb-2">🍽️</p>
+            <p className="text-[#8A9BBF] text-sm mb-4">Nema namirnica u ovom obroku</p>
+            <button onClick={() => setShowSearch(true)}
+              className="px-5 py-2.5 rounded-xl text-sm font-bold text-white"
+              style={{ background: '#4169E1' }}>
+              + Dodaj namirnicu
+            </button>
+          </div>
+        ) : (
+          slotEntries.map(e => (
+            <div key={e.id} className="flex items-center px-4 py-3 border-b border-[#F0F4FA] last:border-0 gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-[#1A2540] text-sm font-semibold truncate">{e.food_name}</p>
+                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                  <span className="text-[#8A9BBF] text-xs">{e.quantity_g}g</span>
+                  <span className="text-[#4169E1] text-xs font-bold">{Math.round(e.calories)} kcal</span>
+                  <span className="text-[#3B82F6] text-xs font-semibold">P:{Math.round(e.protein_g)}g</span>
+                  <span className="text-green-600 text-xs">UH:{Math.round(e.carbs_g)}g</span>
+                  <span className="text-amber-600 text-xs">M:{Math.round(e.fat_g)}g</span>
                 </div>
+              </div>
+              <button onClick={() => handleRemove(e.id)}
+                className="text-[#CBD5E1] hover:text-red-400 text-xl transition-colors w-8 h-8 flex items-center justify-center shrink-0">×</button>
+            </div>
+          ))
+        )}
+      </div>
 
-                <div className="flex gap-2 flex-wrap">
-                  {QUICK.map(a => (
-                    <button key={a} onClick={() => { setQty(a); setCustomQty('') }}
-                      className={`px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all ${activeQty === a && !customQty ? 'bg-primary border-primary text-white' : 'border-line text-secondary'}`}>
-                      {a}g
-                    </button>
+      {/* ── Search modal ─────────────────────────────────────── */}
+      {showSearch && (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/30 backdrop-blur-sm" onClick={() => setShowSearch(false)}>
+          <div className="w-full bg-white rounded-t-3xl max-h-[88vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-center pt-3 pb-2"><div className="w-10 h-1 bg-[#E4EAF4] rounded-full" /></div>
+            <div className="px-4 pb-3 flex items-center gap-3">
+              <input ref={searchRef} type="text" value={query} onChange={e => setQuery(e.target.value)}
+                placeholder="Pretraži namirnice..."
+                className="flex-1 rounded-xl px-4 py-3 text-[#1A2540] text-sm outline-none border border-[#E4EAF4] bg-[#F0F4FA] focus:border-[#4169E1]"
+              />
+              <button onClick={() => setShowSearch(false)} className="text-[#8A9BBF] text-2xl w-9 h-9 flex items-center justify-center">×</button>
+            </div>
+            <div className="overflow-y-auto flex-1 px-4 pb-6">
+              {results.length > 0 ? results.map(food => (
+                <button key={food.id} onClick={() => openAddFood(food)}
+                  className="w-full flex items-center justify-between py-3.5 border-b border-[#F0F4FA] last:border-0 text-left hover:bg-[#F8FAFF] rounded-lg px-2 -mx-2">
+                  <div>
+                    <p className="text-[#1A2540] text-sm font-semibold">{food.name_sr}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[#4169E1] text-xs font-bold">{food.calories_kcal} kcal</span>
+                      <span className="text-[#3B82F6] text-xs font-semibold">P:{food.protein_g}g</span>
+                      <span className="text-green-600 text-xs">UH:{food.carbs_g}g</span>
+                      <span className="text-amber-600 text-xs">M:{food.fat_g}g</span>
+                      <span className="text-[#CBD5E1] text-xs">/100g</span>
+                    </div>
+                  </div>
+                  <span className="text-[#CBD5E1] text-xl ml-2">›</span>
+                </button>
+              )) : query.trim() ? (
+                <p className="text-[#8A9BBF] text-sm text-center py-10">Nema rezultata za „{query}"</p>
+              ) : (
+                <div className="py-10 text-center">
+                  <p className="text-4xl mb-3">🔍</p>
+                  <p className="text-[#8A9BBF] text-sm">Počni da kucaš naziv namirnice</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Add food modal ───────────────────────────────────── */}
+      {addFood && (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/30 backdrop-blur-sm" onClick={() => setAddFood(null)}>
+          <div className="w-full bg-white rounded-t-3xl overflow-y-auto max-h-[92vh] shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1 bg-[#E4EAF4] rounded-full" /></div>
+            <div className="px-5 pt-4 pb-10">
+              <p className="text-[#1A2540] font-black text-xl mb-0.5">Dodaj u obrok</p>
+              <p className="text-[#3B82F6] font-bold text-sm mb-5">{addFood.name_sr}</p>
+
+              <p className="text-[#8A9BBF] text-xs font-bold uppercase tracking-widest mb-2">Gramatura</p>
+              <div className="flex items-center gap-3 mb-3">
+                <input autoFocus type="number" value={grams} onChange={e => setGrams(e.target.value)} min="1"
+                  className="flex-1 rounded-2xl px-4 py-4 text-[#1A2540] text-2xl font-black text-center outline-none border-2 border-[#E4EAF4] focus:border-[#4169E1] bg-[#F8FAFF]"
+                />
+                <span className="text-[#8A9BBF] text-xl font-semibold">g</span>
+              </div>
+
+              <div className="flex gap-2 mb-4">
+                {[50, 100, 150, 200, 250].map(a => (
+                  <button key={a} onClick={() => setGrams(String(a))}
+                    className="flex-1 py-2 rounded-xl text-xs font-bold border-2 transition-all"
+                    style={grams === String(a)
+                      ? { background: '#4169E1', borderColor: '#4169E1', color: '#fff' }
+                      : { background: '#F0F4FA', borderColor: '#E4EAF4', color: '#8A9BBF' }}>
+                    {a}g
+                  </button>
+                ))}
+              </div>
+
+              {preview && (
+                <div className="rounded-xl p-3.5 mb-5 grid grid-cols-4 gap-2 text-center bg-[#F8FAFF] border border-[#E4EAF4]">
+                  {[
+                    { l: 'kcal',  v: Math.round(preview.calories),          c: '#4169E1' },
+                    { l: 'P (g)', v: preview.protein_g.toFixed(1),          c: '#3B82F6' },
+                    { l: 'UH (g)',v: preview.carbs_g.toFixed(1),            c: '#22C55E' },
+                    { l: 'M (g)', v: preview.fat_g.toFixed(1),              c: '#F59E0B' },
+                  ].map(item => (
+                    <div key={item.l}>
+                      <p className="text-lg font-black" style={{ color: item.c }}>{item.v}</p>
+                      <p className="text-xs text-[#8A9BBF]">{item.l}</p>
+                    </div>
                   ))}
                 </div>
+              )}
 
-                <div className="flex items-center gap-2">
-                  <input type="number" value={customQty} onChange={e => setCustomQty(e.target.value)} placeholder="Unesi količinu..."
-                    className="flex-1 bg-bg border border-line rounded-xl px-4 py-3 text-white placeholder-muted outline-none focus:border-primary text-sm" />
-                  <span className="text-muted">g</span>
-                </div>
-
-                {preview && (
-                  <div className="bg-bg rounded-xl p-4 grid grid-cols-4 gap-2 text-center">
-                    {[
-                      { l: 'Kalorije', v: Math.round(preview.calories), u: 'kcal', c: 'text-primary' },
-                      { l: 'Proteini', v: Math.round(preview.protein_g), u: 'g', c: 'text-green-400' },
-                      { l: 'Ugljeni h.', v: Math.round(preview.carbs_g), u: 'g', c: 'text-yellow-400' },
-                      { l: 'Masti', v: Math.round(preview.fat_g), u: 'g', c: 'text-orange-400' },
-                    ].map(item => (
-                      <div key={item.l}>
-                        <p className={`text-lg font-black ${item.c}`}>{item.v}</p>
-                        <p className="text-muted text-xs">{item.u}</p>
-                        <p className="text-muted text-xs">{item.l}</p>
+              <p className="text-[#8A9BBF] text-xs font-bold uppercase tracking-widest mb-3">Izaberi obrok:</p>
+              <div className="space-y-2">
+                {MEALS.map(meal => {
+                  const mc = MEAL_COLORS[meal.id]
+                  const mealCal = Math.round(entries.filter(e => e.meal_slot === meal.id).reduce((s, e) => s + e.calories, 0))
+                  return (
+                    <button key={meal.id} onClick={() => confirmAdd(meal.id)} disabled={previewG <= 0}
+                      className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl border-2 transition-all disabled:opacity-40 hover:shadow-sm"
+                      style={{ background: mc.bg, borderColor: mc.border }}>
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{meal.icon}</span>
+                        <div className="text-left">
+                          <p className="text-[#1A2540] font-bold text-sm">{meal.label}</p>
+                          <p className="text-[#8A9BBF] text-xs">{mealCal > 0 ? `${mealCal} kcal` : 'Prazan'}</p>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                )}
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold"
+                        style={{ background: mc.iconBg }}>→</div>
+                    </button>
+                  )
+                })}
+              </div>
 
-                <button onClick={handleAdd} disabled={activeQty <= 0}
-                  className="w-full py-4 bg-primary hover:bg-primary-h text-white font-bold rounded-xl transition-colors disabled:opacity-30 text-base">
-                  Dodaj {activeQty}g
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-col px-5 pb-4 min-h-0">
-                <div className="flex items-center justify-between py-3 mb-1">
-                  <p className="text-white font-bold">Dodaj u {MEALS.find(m => m.id === pickerSlot)?.label}</p>
-                  <button onClick={() => setPickerSlot(null)} className="text-muted text-2xl">×</button>
-                </div>
-                <input autoFocus type="text" value={query} onChange={e => setQuery(e.target.value)}
-                  placeholder="Pretraži namirnice..."
-                  className="w-full bg-bg border border-line rounded-xl px-4 py-3 text-white placeholder-muted outline-none focus:border-primary mb-3"
-                />
-                <div className="overflow-y-auto flex-1 max-h-64">
-                  {results.length > 0 ? (
-                    <div className="divide-y divide-line">
-                      {results.map(food => (
-                        <button key={food.id} onClick={() => setSelected(food)}
-                          className="w-full flex items-center justify-between px-2 py-3 hover:bg-surface-alt transition-colors text-left">
-                          <div>
-                            <p className="text-white text-sm font-medium">{food.name_sr}</p>
-                            <p className="text-muted text-xs">{food.calories_kcal} kcal · P{food.protein_g} UH{food.carbs_g} M{food.fat_g} <span className="opacity-60">/100g</span></p>
-                          </div>
-                          <span className="text-primary text-xl ml-2">›</span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : query.trim() ? (
-                    <p className="text-muted text-sm text-center py-10">Nema rezultata</p>
-                  ) : (
-                    <div className="py-10 text-center">
-                      <p className="text-4xl mb-3">🔍</p>
-                      <p className="text-muted text-sm">Počni da kucaš naziv namirnice</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+              <button onClick={() => setAddFood(null)}
+                className="w-full mt-4 py-3.5 rounded-xl text-sm font-semibold text-[#8A9BBF] hover:text-[#4A5A7A] border border-[#E4EAF4] transition-colors">
+                Zatvori
+              </button>
+            </div>
           </div>
         </div>
       )}
