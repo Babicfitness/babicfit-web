@@ -4,10 +4,11 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const NAV = [
-  { href: '/plan',     label: 'Moj plan',  icon: '🍽️' },
-  { href: '/database', label: 'Baza namirnica', icon: '🔍' },
-  { href: '/foods',    label: 'Lične namirnice', icon: '🥗' },
-  { href: '/recipes',  label: 'Moji recepti', icon: '📖' },
+  { href: '/plan',     label: 'Moj plan',        icon: '🍽️' },
+  { href: '/database', label: 'Baza namirnica',   icon: '🔍' },
+  { href: '/foods',    label: 'Lične namirnice',  icon: '🥗' },
+  { href: '/recipes',  label: 'Moji recepti',     icon: '📖' },
+  { href: '/history',  label: 'Istorija',         icon: '📅' },
 ]
 
 export default function TopNav() {

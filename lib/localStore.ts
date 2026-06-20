@@ -153,3 +153,14 @@ export function deleteRecipe(id: string) {
 export function getRecipe(id: string): Recipe | null {
   return getRecipes().find(r => r.id === id) ?? null
 }
+
+// ── History ────────────────────────────────────────────────────
+export function getAllDates(): string[] {
+  const all = get<MealEntry[]>(KEYS.entries) ?? []
+  const dates = [...new Set(all.map(e => e.date))]
+  return dates.sort((a, b) => b.localeCompare(a)) // newest first
+}
+
+export function getAllEntries(): MealEntry[] {
+  return get<MealEntry[]>(KEYS.entries) ?? []
+}

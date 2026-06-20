@@ -192,7 +192,7 @@ export default function PlanPage() {
                       <p className="text-muted text-xs mt-0.5">
                         {e.quantity_g}g ·{' '}
                         <span className="text-primary">{Math.round(e.calories)} kcal</span>
-                        {' '}· B{Math.round(e.protein_g)} U{Math.round(e.carbs_g)} M{Math.round(e.fat_g)}
+                        {' '}· P{Math.round(e.protein_g)} UH{Math.round(e.carbs_g)} M{Math.round(e.fat_g)}
                       </p>
                     </div>
                     <button onClick={() => handleRemove(e.id)} className="text-muted hover:text-danger text-xl transition-colors shrink-0">×</button>
@@ -225,7 +225,7 @@ export default function PlanPage() {
                   <button onClick={() => setSelected(null)} className="text-muted text-2xl">‹</button>
                   <div>
                     <p className="text-white font-bold">{selected.name_sr}</p>
-                    <p className="text-muted text-xs">Na 100g: {selected.calories_kcal} kcal · B{selected.protein_g} U{selected.carbs_g} M{selected.fat_g}</p>
+                    <p className="text-muted text-xs">Na 100g: {selected.calories_kcal} kcal · P{selected.protein_g} UH{selected.carbs_g} M{selected.fat_g}</p>
                   </div>
                 </div>
 
@@ -284,7 +284,7 @@ export default function PlanPage() {
                           className="w-full flex items-center justify-between px-2 py-3 hover:bg-surface-alt transition-colors text-left">
                           <div>
                             <p className="text-white text-sm font-medium">{food.name_sr}</p>
-                            <p className="text-muted text-xs">{food.calories_kcal} kcal · B{food.protein_g} U{food.carbs_g} M{food.fat_g} <span className="opacity-60">/100g</span></p>
+                            <p className="text-muted text-xs">{food.calories_kcal} kcal · P{food.protein_g} UH{food.carbs_g} M{food.fat_g} <span className="opacity-60">/100g</span></p>
                           </div>
                           <span className="text-primary text-xl ml-2">›</span>
                         </button>

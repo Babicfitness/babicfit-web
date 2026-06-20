@@ -16,12 +16,20 @@ const MEALS: { id: MealSlot; label: string }[] = [
 ]
 
 const CAT_COLORS: Record<string, string> = {
-  protein:   'text-green-400  bg-green-400/10',
-  carbs:     'text-yellow-400 bg-yellow-400/10',
-  fats:      'text-orange-400 bg-orange-400/10',
-  vegetables:'text-emerald-400 bg-emerald-400/10',
-  fruits:    'text-pink-400   bg-pink-400/10',
-  dairy:     'text-blue-300   bg-blue-300/10',
+  'cat-meso':     'text-red-400    bg-red-400/10',
+  'cat-riba':     'text-blue-300   bg-blue-300/10',
+  'cat-jaja':     'text-yellow-300 bg-yellow-300/10',
+  'cat-mlecni':   'text-blue-200   bg-blue-200/10',
+  'cat-supp':     'text-purple-400 bg-purple-400/10',
+  'cat-zitarice': 'text-yellow-400 bg-yellow-400/10',
+  'cat-hleb':     'text-amber-400  bg-amber-400/10',
+  'cat-krompir':  'text-orange-300 bg-orange-300/10',
+  'cat-voce':     'text-pink-400   bg-pink-400/10',
+  'cat-povrce':   'text-green-400  bg-green-400/10',
+  'cat-ulja':     'text-orange-400 bg-orange-400/10',
+  'cat-orasasti': 'text-amber-600  bg-amber-600/10',
+  'cat-semenke':  'text-lime-400   bg-lime-400/10',
+  'cat-ostalo':   'text-muted      bg-line',
 }
 
 export default function DatabasePage() {
@@ -105,7 +113,7 @@ export default function DatabasePage() {
                   {/* Macros */}
                   <div className="grid grid-cols-2 gap-1.5 mb-3">
                     <MacroPill label="kcal" value={food.calories_kcal} color="text-primary bg-primary/10" />
-                    <MacroPill label="prot" value={`${food.protein_g}g`} color="text-green-400 bg-green-400/10" />
+                    <MacroPill label="P" value={`${food.protein_g}g`} color="text-green-400 bg-green-400/10" />
                     <MacroPill label="ugljeni" value={`${food.carbs_g}g`} color="text-yellow-400 bg-yellow-400/10" />
                     <MacroPill label="masti" value={`${food.fat_g}g`} color="text-orange-400 bg-orange-400/10" />
                   </div>
@@ -132,7 +140,7 @@ export default function DatabasePage() {
           <div className="w-full bg-surface rounded-t-2xl p-5 pb-8" onClick={e => e.stopPropagation()}>
             <div className="flex justify-center mb-4"><div className="w-10 h-1 bg-line rounded-full" /></div>
             <p className="text-white font-bold text-base mb-1">{addFood.name_sr}</p>
-            <p className="text-muted text-xs mb-4">{addFood.calories_kcal} kcal · B{addFood.protein_g} U{addFood.carbs_g} M{addFood.fat_g} (na 100g)</p>
+            <p className="text-muted text-xs mb-4">{addFood.calories_kcal} kcal · P{addFood.protein_g} UH{addFood.carbs_g} M{addFood.fat_g} (na 100g)</p>
 
             <p className="text-secondary text-xs font-semibold uppercase tracking-wide mb-2">Obrok</p>
             <div className="flex gap-2 flex-wrap mb-4">
