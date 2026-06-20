@@ -51,7 +51,15 @@ export default function NewRecipePage() {
       const m = calcEntryMacros(food, qty)
       return { food_id:food.id, food_name:food.name_sr, quantity_g:qty, ...m }
     })
-    addRecipe({ name:name.trim(), servings:srv, items, ...totals })
+    addRecipe({
+      name: name.trim(),
+      servings: srv,
+      items,
+      total_calories: totals.calories,
+      total_protein_g: totals.protein_g,
+      total_carbs_g: totals.carbs_g,
+      total_fat_g: totals.fat_g,
+    })
     router.push('/recipes')
   }
 
