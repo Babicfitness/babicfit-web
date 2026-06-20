@@ -33,7 +33,7 @@ export default function LoginPage() {
       }
       router.refresh()
     } catch (err: any) {
-      setError(translateError(err.message))
+      setError(err.message ?? 'Greška. Pokušajte ponovo.')
     } finally {
       setLoading(false)
     }
