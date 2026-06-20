@@ -14,29 +14,52 @@ type Data = {
 
 const TOTAL = 8
 
+const STEPS = [
+  { field: 'first_name', label: 'Kako se zoveš?', sub: 'Upiši kako da te zovemo — to je sve što nam treba za početak.', type: 'text', placeholder: 'Tvoje ime' },
+  { field: 'last_name',  label: 'Koje je tvoje prezime?', sub: 'Koristimo ga da personalizujemo tvoj plan.', type: 'text', placeholder: 'Tvoje prezime' },
+  { field: 'gender',     label: 'Koji je tvoj pol?', sub: 'Odaberi onaj koji odgovara tvojoj biologiji.', type: 'choice',
+    options: [{ value: 'female', label: 'Žena', icon: '👩' }, { value: 'male', label: 'Muškarac', icon: '👨' }] },
+  { field: 'age',        label: 'Koliko imaš godina?', sub: 'Što si stariji/a, telu treba nešto drugačija ishrana — zato nam to kažeš.', type: 'number', unit: 'godina', min: 10, max: 100, placeholder: '25' },
+  { field: 'height_cm',  label: 'Koja je tvoja visina?', sub: 'Unesi svoju visinu u centimetrima — npr. ako si 178cm, ukucaj 178.', type: 'number', unit: 'cm', min: 100, max: 250, placeholder: '170' },
+  { field: 'weight_kg',  label: 'Koja je tvoja trenutna težina?', sub: 'Unesi koliko si kilogram u ovom trenutku — npr. 82.', type: 'number', unit: 'kg', min: 30, max: 300, placeholder: '70' },
+  { field: 'activity_level', label: 'Koliko si aktivan/na?', sub: 'Budi iskren/a — na osnovu ovoga ćemo izračunati koliko kalorija ti treba svaki dan.', type: 'choice',
+    options: [
+      { value: 'sedentary', label: 'Uglavnom sedim', sub: 'Kancelarija, auto, sofa — malo se krećem tokom dana' },
+      { value: 'light',     label: 'Malo se krećem', sub: 'Pešačim, ponekad vežbam — 1 do 2 puta nedeljno' },
+      { value: 'moderate',  label: 'Vežbam redovno', sub: 'Idem na trening 3 do 5 puta nedeljno' },
+      { value: 'active',    label: 'Vežbam svaki dan', sub: 'Skoro svaki dan sam aktivan/na ili imam fizički posao' },
+    ] },
+  { field: 'goal', label: 'Koji je tvoj cilj?', sub: 'Izaberi šta želiš da postigneš, a mi ćemo ti izračunati sve ostalo.', type: 'choice',
+    options: [
+      { value: 'lose_weight',  label: 'Želim da smršam',      sub: 'Unosiću malo manje kalorija da gubim kilogram po kilogram' },
+      { value: 'maintain',     label: 'Želim da zadržim težinu', sub: 'Unosiću onoliko kalorija koliko i trošim — bez promena' },
+      { value: 'gain_muscle',  label: 'Želim da naberem mišiće', sub: 'Unosiću malo više kalorija da pomognem rastu mišića' },
+    ] },
+]
+
 export default function OnboardingPage() {
   const router = useRouter()
-  const [step, setStep] = useState(1)
+  const [step, setStep] = useState(0) // 0-indexed
   const [saving, setSaving] = useState(false)
   const [data, setData] = useState<Data>({
     first_name:'', last_name:'', gender:'', age:'',
     height_cm:'', weight_kg:'', activity_level:'', goal:'',
   })
 
-  function set<K extends keyof Data>(k: K, v: Data[K]) {
-    setData(p => ({ ...p, [k]: v }))
+  const current = STEPS[step]
+
+  function setField(v: string) {
+    setData(p => ({ ...p, [current.field]: v }))
   }
 
   function canAdvance() {
-    if (step === 1) return data.first_name.trim().length > 0
-    if (step === 2) return data.last_name.trim().length > 0
-    if (step === 3) return data.gender !== ''
-    if (step === 4) return data.age !== '' && +data.age >= 10 && +data.age <= 100
-    if (step === 5) return data.height_cm !== '' && +data.height_cm >= 100 && +data.height_cm <= 250
-    if (step === 6) return data.weight_kg !== '' && +data.weight_kg >= 30 && +data.weight_kg <= 300
-    if (step === 7) return data.activity_level !== ''
-    if (step === 8) return data.goal !== ''
-    return false
+    const val = data[current.field as keyof Data]
+    if (!val) return false
+    if (current.type === 'number') {
+      const n = +val
+      return n >= (current.min ?? 0) && n <= (current.max ?? 9999)
+    }
+    return val.toString().trim().length > 0
   }
 
   async function finish() {
@@ -61,78 +84,129 @@ export default function OnboardingPage() {
     router.push('/plan')
   }
 
-  function next() { if (canAdvance()) { if (step === TOTAL) finish(); else setStep(s => s + 1) } }
-  function back() { if (step > 1) setStep(s => s - 1) }
+  function next() {
+    if (!canAdvance()) return
+    if (step === TOTAL - 1) { finish(); return }
+    setStep(s => s + 1)
+  }
 
-  const isChoice = step === 3 || step === 7 || step === 8
+  function choiceSelect(val: string) {
+    setData(p => ({ ...p, [current.field]: val }))
+    if (current.field !== 'goal') {
+      setTimeout(() => {
+        if (step === TOTAL - 1) finish()
+        else setStep(s => s + 1)
+      }, 180)
+    }
+  }
+
+  const progress = ((step + 1) / TOTAL) * 100
+  const currentValue = data[current.field as keyof Data] as string
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">
-      <div className="h-1 bg-line">
-        <div className="h-1 bg-primary transition-all duration-300" style={{ width: `${(step/TOTAL)*100}%` }} />
+      {/* Logo */}
+      <div className="pt-10 pb-6 flex flex-col items-center px-6">
+        <h1 className="text-3xl font-black tracking-tight">
+          <span className="text-white">BABIC</span><span className="text-primary">FIT</span>
+        </h1>
+        <p className="text-muted text-sm mt-1">Personalizovani plan ishrane</p>
       </div>
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
-        <div className="w-full max-w-sm">
-          <p className="text-muted text-sm mb-2">{step} od {TOTAL}</p>
-          <div className="mb-8">
-            {step === 1 && <StepText label="Kako se zoveš?" placeholder="Ime" value={data.first_name} onChange={v => set('first_name', v)} onEnter={next} />}
-            {step === 2 && <StepText label="Prezime?" placeholder="Prezime" value={data.last_name} onChange={v => set('last_name', v)} onEnter={next} />}
-            {step === 3 && <StepChoice label="Pol" options={[{value:'female',label:'Žena'},{value:'male',label:'Muškarac'}]} value={data.gender} onChange={v => { set('gender', v as Gender); setTimeout(next, 150) }} />}
-            {step === 4 && <StepNumber label="Koliko imaš godina?" unit="god" min={10} max={100} value={data.age} onChange={v => set('age', v)} onEnter={next} />}
-            {step === 5 && <StepNumber label="Visina?" unit="cm" min={100} max={250} value={data.height_cm} onChange={v => set('height_cm', v)} onEnter={next} />}
-            {step === 6 && <StepNumber label="Težina?" unit="kg" min={30} max={300} value={data.weight_kg} onChange={v => set('weight_kg', v)} onEnter={next} />}
-            {step === 7 && <StepChoice label="Koliko si aktivna/aktivan?" options={[{value:'sedentary',label:'Uglavnom sedim'},{value:'light',label:'Malo se krećem'},{value:'moderate',label:'Vežbam redovno'},{value:'active',label:'Vežbam svaki dan'}]} value={data.activity_level} onChange={v => { set('activity_level', v as ActivityLevel); setTimeout(next, 150) }} />}
-            {step === 8 && <StepChoice label="Koji je tvoj cilj?" options={[{value:'lose_weight',label:'Želim da smršam'},{value:'maintain',label:'Održim težinu'},{value:'gain_muscle',label:'Naberem mišiće'}]} value={data.goal} onChange={v => set('goal', v as Goal)} />}
-          </div>
-          <div className="flex gap-3">
-            {step > 1 && <button onClick={back} className="flex-1 py-3.5 rounded-xl border border-line text-secondary font-medium hover:bg-surface transition-colors">Nazad</button>}
-            {!isChoice || step === 8 ? (
-              <button onClick={next} disabled={!canAdvance() || saving} className="flex-1 py-3.5 rounded-xl bg-primary hover:bg-primary-h text-white font-semibold transition-colors disabled:opacity-40">
-                {step === TOTAL ? (saving ? 'Čuvam...' : 'Završi') : 'Dalje'}
-              </button>
-            ) : null}
-          </div>
+
+      {/* Progress bar */}
+      <div className="mx-6 h-1.5 bg-line rounded-full overflow-hidden">
+        <div
+          className="h-full bg-primary rounded-full transition-all duration-400 ease-out"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+
+      {/* Card */}
+      <div className="flex-1 flex flex-col justify-center px-6 py-8">
+        <div className="bg-surface rounded-2xl p-6 w-full max-w-md mx-auto">
+          <h2 className="text-2xl font-bold text-white mb-2">{current.label}</h2>
+          <p className="text-secondary text-sm mb-6 leading-relaxed">{current.sub}</p>
+
+          {current.type === 'text' && (
+            <input
+              autoFocus
+              type="text"
+              value={currentValue}
+              onChange={e => setField(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && next()}
+              placeholder={current.placeholder}
+              className="w-full bg-bg border border-line rounded-xl px-4 py-4 text-white text-lg placeholder-muted outline-none focus:border-primary transition-colors mb-6"
+            />
+          )}
+
+          {current.type === 'number' && (
+            <div className="flex items-center gap-3 mb-6">
+              <input
+                autoFocus
+                type="number"
+                min={current.min}
+                max={current.max}
+                value={currentValue}
+                onChange={e => setField(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && next()}
+                placeholder={current.placeholder}
+                className="flex-1 bg-bg border border-line rounded-xl px-4 py-4 text-white text-lg placeholder-muted outline-none focus:border-primary transition-colors text-center"
+              />
+              <span className="text-muted text-base w-16">{current.unit}</span>
+            </div>
+          )}
+
+          {current.type === 'choice' && (
+            <div className="flex flex-col gap-3 mb-6">
+              {current.options?.map((opt: { value: string; label: string; icon?: string; sub?: string }) => (
+                <button
+                  key={opt.value}
+                  onClick={() => choiceSelect(opt.value)}
+                  className={`w-full px-5 py-4 rounded-xl text-left transition-all border-2 ${
+                    currentValue === opt.value
+                      ? 'bg-primary/10 border-primary'
+                      : 'bg-bg border-line hover:border-primary/40'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    {opt.icon && <span className="text-2xl">{opt.icon}</span>}
+                    <div>
+                      <p className={`font-semibold text-base ${currentValue === opt.value ? 'text-primary' : 'text-white'}`}>
+                        {opt.label}
+                      </p>
+                      {opt.sub && <p className="text-muted text-xs mt-0.5">{opt.sub}</p>}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* CTA button — always shown for text/number, shown for goal choice */}
+          {(current.type !== 'choice' || current.field === 'goal') && (
+            <button
+              onClick={next}
+              disabled={!canAdvance() || saving}
+              className="w-full py-4 rounded-xl bg-primary hover:bg-primary-h text-white font-bold text-base transition-colors disabled:opacity-30"
+            >
+              {step === TOTAL - 1 ? (saving ? 'Čuvam...' : 'Izračunaj moje ciljeve ✓') : 'Nastavi →'}
+            </button>
+          )}
         </div>
-      </div>
-    </div>
-  )
-}
 
-function StepText({ label, placeholder, value, onChange, onEnter }: { label:string; placeholder:string; value:string; onChange:(v:string)=>void; onEnter:()=>void }) {
-  return (
-    <div>
-      <h2 className="text-2xl font-bold text-white mb-6">{label}</h2>
-      <input autoFocus type="text" value={value} onChange={e => onChange(e.target.value)} onKeyDown={e => e.key==='Enter' && onEnter()} placeholder={placeholder}
-        className="w-full bg-surface border border-line rounded-xl px-4 py-4 text-white text-lg placeholder-muted outline-none focus:border-primary transition-colors" />
-    </div>
-  )
-}
-
-function StepNumber({ label, unit, min, max, value, onChange, onEnter }: { label:string; unit:string; min:number; max:number; value:string; onChange:(v:string)=>void; onEnter:()=>void }) {
-  return (
-    <div>
-      <h2 className="text-2xl font-bold text-white mb-6">{label}</h2>
-      <div className="flex items-center gap-3">
-        <input autoFocus type="number" min={min} max={max} value={value} onChange={e => onChange(e.target.value)} onKeyDown={e => e.key==='Enter' && onEnter()} placeholder="0"
-          className="flex-1 bg-surface border border-line rounded-xl px-4 py-4 text-white text-lg placeholder-muted outline-none focus:border-primary transition-colors text-center" />
-        <span className="text-muted text-lg w-12">{unit}</span>
-      </div>
-    </div>
-  )
-}
-
-function StepChoice({ label, options, value, onChange }: { label:string; options:{value:string;label:string}[]; value:string; onChange:(v:string)=>void }) {
-  return (
-    <div>
-      <h2 className="text-2xl font-bold text-white mb-6">{label}</h2>
-      <div className="flex flex-col gap-3">
-        {options.map(opt => (
-          <button key={opt.value} type="button" onClick={() => onChange(opt.value)}
-            className={`w-full py-4 px-5 rounded-xl text-left font-medium text-base transition-all border ${value===opt.value ? 'bg-primary border-primary text-white' : 'bg-surface border-line text-secondary hover:border-primary/50'}`}>
-            {opt.label}
+        {/* Back link */}
+        {step > 0 && (
+          <button
+            onClick={() => setStep(s => s - 1)}
+            className="mt-4 text-muted text-sm text-center hover:text-secondary transition-colors"
+          >
+            ← Nazad
           </button>
-        ))}
+        )}
       </div>
+
+      {/* Step counter */}
+      <p className="text-center text-muted text-xs pb-6">Korak {step + 1} od {TOTAL}</p>
     </div>
   )
 }
