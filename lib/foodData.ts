@@ -33,8 +33,7 @@ export const CATEGORIES = [
 export const SYSTEM_FOODS: FoodItem[] = [
 
   // ── JAJA ─────────────────────────────────────────────────────────────────────
-  { id:'sf-jaje-celo',    type:'system', category_id:'cat-jaja',    name_sr:'Jaje (celo)',                      search_name:'jaje celo komad',                        calories_kcal:140,  protein_g:12.5, carbs_g:0.7, fat_g:10,   serving_g:60, serving_label:'kom' },
-  { id:'sf-belance',      type:'system', category_id:'cat-jaja',    name_sr:'Belance',                          search_name:'belance jaje belo',                      calories_kcal:52,   protein_g:11,   carbs_g:0.7, fat_g:0,    serving_g:35, serving_label:'kom' },
+  { id:'sf-jaje-celo',    type:'system', category_id:'cat-jaja',    name_sr:'Jaje',                             search_name:'jaje celo komad',                        calories_kcal:140,  protein_g:12.5, carbs_g:0.7, fat_g:10,   serving_g:50, serving_label:'kom' },
 
   // ── MESO ─────────────────────────────────────────────────────────────────────
   { id:'sf-piletina-grudi',      type:'system', category_id:'cat-meso', name_sr:'Piletina (grudi, sirova)',          search_name:'piletina grudi sirova pilece prsa',      calories_kcal:120, protein_g:23,   carbs_g:0,   fat_g:2.6  },
